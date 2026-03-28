@@ -6,8 +6,8 @@ function showPage(type) {
       <h2>心事投递箱</h2>
 
       <div class="card">
-        <strong>今天有什么想放下的？</strong><br><br>
-        <textarea id="userInput" placeholder="可以写一句话，也可以不写..." style="width:100%;height:80px;"></textarea>
+        <strong>今天有什么想说的？</strong><br><br>
+        <textarea id="userInput" placeholder="可以写一句话，也可以不写..."></textarea>
       </div>
 
       <div class="card">
@@ -25,25 +25,11 @@ function showPage(type) {
 
       <div id="resultBox"></div>
     `
-
     setTimeout(loadChat, 100)
   }
 
   if (type === 'teacher') {
-    contentBox.innerHTML = `
-      <h2>教师端 · 风险监测</h2>
-
-      <div class="card">高风险学生：5人</div>
-      <div class="card">中风险学生：20人</div>
-
-      <div class="card high" onclick="showStudentDetail('张三')">
-        张三 - 高风险（点击查看）
-      </div>
-
-      <div class="card mid" onclick="showStudentDetail('李四')">
-        李四 - 中风险（点击查看）
-      </div>
-    `
+    renderTeacher()
   }
 }
 
@@ -72,91 +58,102 @@ function submitEmotion() {
     return
   }
 
-  const userMsg = document.createElement("div")
-  userMsg.className = "chat-item chat-user"
-  userMsg.innerText = "👤 " + (text || selectedMood)
-  chatBox.appendChild(userMsg)
+  const userText = text || selectedMood
 
-  scrollToBottom()
-  saveChat()
+  appendMsg(chatBox, "chat-user", "👤 " + userText)
 
   const response = generateResponse(text, selectedMood)
   const risk = generateRisk(text, selectedMood)
 
+  saveRecord(text, risk)
   document.getElementById('userInput').value = ''
-
-  const loadingMsg = document.createElement("div")
-  loadingMsg.className = "chat-item chat-ai typing"
-  loadingMsg.innerText = "🤖 正在思考..."
-  chatBox.appendChild(loadingMsg)
-
   scrollToBottom()
+  saveChat()
+
+  const loading = appendMsg(chatBox, "chat-ai typing", "🤖 正在分析你的情绪...")
 
   setTimeout(() => {
-    loadingMsg.remove()
+    loading.remove()
 
-    const aiMsg = document.createElement("div")
-    aiMsg.className = "chat-item chat-ai"
-    chatBox.appendChild(aiMsg)
+    const aiMsg = appendMsg(chatBox, "chat-ai", "")
+    typeWriter(aiMsg, "🤖 我理解你刚刚说的“" + userText + "”。" + response)
 
-    typeWriter(aiMsg, "🤖 " + response)
     scrollToBottom()
-
     setTimeout(saveChat, 1000)
   }, 600)
 
   setTimeout(() => {
-    const tipMsg = document.createElement("div")
-    tipMsg.className = "chat-item chat-tip"
-    chatBox.appendChild(tipMsg)
+    const tip = appendMsg(chatBox, "chat-tip", "")
+    typeWriter(tip, "💡 " + getSuggestion(risk), 20)
 
-    typeWriter(tipMsg, "💡 " + getSuggestion(risk), 20)
     scrollToBottom()
-
     setTimeout(saveChat, 1500)
   }, 1600)
 }
 
 
+function appendMsg(box, cls, text) {
+  const div = document.createElement("div")
+  div.className = "chat-item " + cls
+  div.innerText = text
+  box.appendChild(div)
+  return div
+}
+
+
 function generateRisk(text, mood) {
-  if (text.includes('累') || text.includes('压力') || mood === '压力') {
-    return '中风险'
-  }
-
-  if (text.includes('难过') || text.includes('想哭') || mood === '难受') {
-    return '高风险'
-  }
-
+  if (text.includes('累') || text.includes('压力') || mood === '压力') return '中风险'
+  if (text.includes('难过') || text.includes('想哭') || mood === '难受') return '高风险'
   return '低风险'
 }
 
 
 function generateResponse(text, mood) {
-  if (text.includes('累') || text.includes('作业') || mood === '压力') {
-    return "你最近可能有点压力大，长时间紧绷真的很辛苦。可以试着给自己一点喘息的空间，不用一直逼自己。"
-  }
 
-  if (text.includes('难过') || text.includes('想哭') || mood === '难受') {
-    return "难过的时候不用强撑，情绪本来就应该被表达出来。慢一点也没关系，你已经很努力了。"
-  }
+  const stress = [
+    "你最近的压力可能有点大，其实很多人都会有这样的阶段。",
+    "感觉你最近挺辛苦的，偶尔累一点真的没关系。",
+    "长期紧绷确实会让人疲惫，可以试着给自己一点喘息空间。"
+  ]
 
-  return "生活本来就有起伏，你现在的状态其实很正常。可以试着放松一下，让自己轻松一点。"
+  const sad = [
+    "难过的时候不用强撑，情绪本来就值得被表达。",
+    "你现在的感受很真实，也很重要。",
+    "慢一点也没关系，你已经在努力面对了。"
+  ]
+
+  const normal = [
+    "生活本来就有起伏，你现在的状态其实很正常。",
+    "保持现在的节奏就很好，不用太苛求自己。",
+    "你已经做得不错了，继续保持就好。"
+  ]
+
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)]
+
+  if (text.includes('累') || text.includes('作业') || mood === '压力') return pick(stress)
+  if (text.includes('难过') || text.includes('想哭') || mood === '难受') return pick(sad)
+
+  return pick(normal)
 }
 
 
-function typeWriter(element, text, speed = 30) {
-  let i = 0
-  element.innerHTML = ""
+function getSuggestion(level) {
+  if (level === '高风险') return "你现在的状态可能需要更多关注，建议找老师或朋友聊一聊。"
+  if (level === '中风险') return "可以尝试放松一下，比如听音乐或短暂休息。"
+  return "状态不错，继续保持现在的节奏就很好。"
+}
 
-  function typing() {
+
+function typeWriter(el, text, speed = 30) {
+  let i = 0
+  el.innerHTML = ""
+  function run() {
     if (i < text.length) {
-      element.innerHTML += text.charAt(i)
-      i++
-      setTimeout(typing, speed)
+      el.innerHTML += text[i++]
+      setTimeout(run, speed)
     }
   }
-
-  typing()
+  run()
 }
 
 
@@ -167,64 +164,78 @@ function scrollToBottom() {
 
 
 function saveChat() {
-  const chatBox = document.getElementById('resultBox')
-  localStorage.setItem('chatHistory', chatBox.innerHTML)
+  localStorage.setItem('chatHistory', document.getElementById('resultBox').innerHTML)
 }
 
 function loadChat() {
-  const chatBox = document.getElementById('resultBox')
-  const history = localStorage.getItem('chatHistory')
-
-  if (history) {
-    chatBox.innerHTML = history
-    scrollToBottom()
-  }
-}
-
-function clearChat() {
-  localStorage.removeItem('chatHistory')
-  document.getElementById('resultBox').innerHTML = ''
+  const data = localStorage.getItem('chatHistory')
+  if (data) document.getElementById('resultBox').innerHTML = data
 }
 
 
-function showStudentDetail(name) {
+function saveRecord(text, risk) {
+  let records = JSON.parse(localStorage.getItem('records') || '[]')
+  records.push({ text, risk, time: new Date().toLocaleString() })
+  localStorage.setItem('records', JSON.stringify(records))
+}
+
+
+function renderTeacher() {
   const contentBox = document.getElementById('content')
+  const records = JSON.parse(localStorage.getItem('records') || '[]')
 
-  const moodList = [60,70,65,80,75,85,78]
+  let high = 0, mid = 0, low = 0
+  records.forEach(r => {
+    if (r.risk === '高风险') high++
+    else if (r.risk === '中风险') mid++
+    else low++
+  })
+
+  const list = records.slice(-5).reverse().map(r => `
+    <div class="card ${getRiskClass(r.risk)} ${r.risk === '高风险' ? 'alert' : ''}">
+      ⏰ ${r.time}<br>
+      内容：${r.text || '（未填写）'}<br>
+      风险：${r.risk}
+    </div>
+  `).join('')
 
   contentBox.innerHTML = `
-    <h2>${name} · 详细分析</h2>
+    <h2>教师端 · 风险监测</h2>
 
-    <div class="card">当前情绪：75</div>
-    <div class="card">风险等级：中风险</div>
+    <div class="card high">高风险：${high}</div>
+    <div class="card mid">中风险：${mid}</div>
+    <div class="card low">低风险：${low}</div>
 
     <div class="card">
-      <strong>分析：</strong><br>
-      最近情绪存在波动趋势，建议关注心理状态变化
+      <h3>风险分布图</h3>
+      <div id="riskChart" style="height:300px;"></div>
     </div>
 
-    <div id="detailChart" style="width:100%;height:300px;"></div>
-
-    <button onclick="showPage('teacher')">返回教师端</button>
+    ${list || '<div class="card">暂无数据</div>'}
   `
 
-  setTimeout(() => {
-    const chart = echarts.init(document.getElementById('detailChart'))
+  setTimeout(() => drawRiskChart(records), 0)
+}
 
-    chart.setOption({
-      title: { text: '情绪趋势分析' },
-      xAxis: {
-        type: 'category',
-        data: ['周一','周二','周三','周四','周五','周六','周日']
-      },
-      yAxis: { type: 'value' },
-      series: [{
-        data: moodList,
-        type: 'line',
-        smooth: true
-      }]
-    })
-  }, 0)
+
+function drawRiskChart(records) {
+  const dom = document.getElementById('riskChart')
+  if (!dom) return
+
+  const chart = echarts.init(dom)
+
+  let high = 0, mid = 0, low = 0
+  records.forEach(r => {
+    if (r.risk === '高风险') high++
+    else if (r.risk === '中风险') mid++
+    else low++
+  })
+
+  chart.setOption({
+    xAxis: { type: 'category', data: ['高风险','中风险','低风险'] },
+    yAxis: { type: 'value' },
+    series: [{ type: 'bar', data: [high, mid, low] }]
+  })
 }
 
 
@@ -234,10 +245,9 @@ function getRiskClass(level) {
   return 'low'
 }
 
-function getSuggestion(level) {
-  if (level === '高风险') return '建议尽快寻求心理老师帮助'
-  if (level === '中风险') return '建议适当放松，调整作息'
-  return '状态良好，继续保持'
+function clearChat() {
+  localStorage.removeItem('chatHistory')
+  document.getElementById('resultBox').innerHTML = ''
 }
 
 
