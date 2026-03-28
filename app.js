@@ -12,10 +12,10 @@ function showPage(type) {
 
       <div class="card">
         <strong>现在更接近哪种状态？</strong><br><br>
-        <button onclick="selectMood('难受')">😔 有点难受</button>
-        <button onclick="selectMood('一般')">😐 还行</button>
-        <button onclick="selectMood('压力')">😫 压力大</button>
-        <button onclick="selectMood('不错')">🙂 还不错</button>
+        <button class="mood-btn" onclick="selectMood('难受')">😔 有点难受</button>
+        <button class="mood-btn" onclick="selectMood('一般')">😐 情绪平稳</button>
+        <button class="mood-btn" onclick="selectMood('压力')">😫 压力较大</button>
+        <button class="mood-btn" onclick="selectMood('不错')">🙂 状态不错</button>
       </div>
 
       <div class="card">
@@ -49,7 +49,14 @@ let selectedMood = ''
 
 function selectMood(mood) {
   selectedMood = mood
-  alert("已选择：" + mood)
+
+  document.querySelectorAll('.mood-btn').forEach(btn => {
+    btn.style.background = '#f0f3f8'
+    btn.style.color = '#333'
+  })
+
+  event.target.style.background = '#2f80ed'
+  event.target.style.color = 'white'
 }
 
 function submitEmotion() {
