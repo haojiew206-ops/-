@@ -12,10 +12,10 @@ function showPage(type) {
 
       <div class="card">
         <strong>现在更接近哪种状态？</strong><br><br>
-        <button class="mood-btn" onclick="selectMood('难受')">😔 有点难受</button>
-        <button class="mood-btn" onclick="selectMood('一般')">😐 情绪平稳</button>
-        <button class="mood-btn" onclick="selectMood('压力')">😫 压力较大</button>
-        <button class="mood-btn" onclick="selectMood('不错')">🙂 状态不错</button>
+        <button class="mood-btn" onclick="selectMood(event,'难受')">😔 有点难受</button>
+        <button class="mood-btn" onclick="selectMood(event,'一般')">😐 情绪平稳</button>
+        <button class="mood-btn" onclick="selectMood(event,'压力')">😫 压力较大</button>
+        <button class="mood-btn" onclick="selectMood(event,'不错')">🙂 状态不错</button>
       </div>
 
       <div class="card">
@@ -47,7 +47,7 @@ function showPage(type) {
 
 let selectedMood = ''
 
-function selectMood(mood) {
+function selectMood(e, mood) {
   selectedMood = mood
 
   document.querySelectorAll('.mood-btn').forEach(btn => {
@@ -55,12 +55,19 @@ function selectMood(mood) {
     btn.style.color = '#333'
   })
 
-  event.target.style.background = '#2f80ed'
-  event.target.style.color = 'white'
+  e.target.style.background = '#2f80ed'
+  e.target.style.color = 'white'
 }
+
 
 function submitEmotion() {
   const text = document.getElementById('userInput').value
+
+  // 防空提交（产品级细节）
+  if (!text && !selectedMood) {
+    alert("可以写一句话或者选一个状态哦～")
+    return
+  }
 
   const response = generateResponse(text, selectedMood)
   const risk = generateRisk(text, selectedMood)
