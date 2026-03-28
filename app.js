@@ -33,7 +33,7 @@ function showPage(type) {
 function selectMood(e, mood) {
     selectedMood = mood;
     const config = moodThemeMap[mood] || moodThemeMap['一般'];
-    document.body.style.background = config.bg;
+    document.body.style.background = config.bg; // 氛围干预
     document.querySelectorAll('.mood-btn').forEach(btn => {
         btn.style.background = '#f1f3f5'; btn.style.color = '#495057';
     });
