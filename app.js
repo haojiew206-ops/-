@@ -1,7 +1,5 @@
 let mood = '';
-const theme = {
-    '难受': '#eef2f7', '一般': '#f5f7fa', '压力': '#fff4f2', '不错': '#f2faf5'
-};
+const theme = { '难受': '#eef2f7', '一般': '#f5f7fa', '压力': '#fff4f2', '不错': '#f2faf5' };
 
 function page(type) {
     const box = document.getElementById('content');
@@ -30,25 +28,19 @@ function set(e, m) {
 function send() {
     const el = document.getElementById('in'), txt = el.value, box = document.getElementById('chats');
     if (!txt && !mood) return alert("写点什么吧");
-    
     add(box, "user", "👤 " + (txt || mood));
     const lv = check(txt, mood);
     const res = reply(lv);
     const tip = hint(lv);
-    
     save(txt, lv);
     el.value = '';
-
     const div = add(box, "ai", "🤖 分析中...");
     setTimeout(() => {
         div.remove();
         const aimsg = add(box, "ai", "");
         type(aimsg, "🤖 " + res);
-        if (lv !== '低风险') {
-            setTimeout(() => breath(box), 1000);
-        } else {
-            setTimeout(() => { add(box, "tip", "💡 " + tip); scroll(); store(); }, 1000);
-        }
+        if (lv !== '低风险') { setTimeout(() => breath(box), 1000); } 
+        else { setTimeout(() => { add(box, "tip", "💡 " + tip); scroll(); store(); }, 1000); }
     }, 800);
 }
 
@@ -60,11 +52,7 @@ function check(t, m) {
 }
 
 function reply(lv) {
-    const words = {
-        '高风险': ["抱抱你，我会一直陪着你。", "此刻很难，但你并不孤单。"],
-        '中风险': ["感觉累了就歇会吧。", "压力总会过去，给自己一点时间。"],
-        '低风险': ["觉察情绪是好事。", "保持这个状态，很棒！"]
-    };
+    const words = { '高风险': ["抱抱你，我会一直陪着你。", "此刻很难，但你并不孤单。"], '中风险': ["感觉累了就歇会吧。", "压力总会过去，给自己一点时间。"], '低风险': ["觉察情绪是好事。", "保持这个状态，很棒！"] };
     const list = words[lv];
     return list[Math.floor(Math.random() * list.length)];
 }
@@ -90,8 +78,7 @@ function breath(box) {
 }
 
 function add(box, cls, txt) {
-    const div = document.createElement("div");
-    div.className = "msg " + cls; div.innerText = txt;
+    const div = document.createElement("div"); div.className = "msg " + cls; div.innerText = txt;
     box.appendChild(div); scroll(); return div;
 }
 
@@ -118,13 +105,41 @@ function save(t, lv) {
 }
 
 function render() {
-    const box = document.getElementById('content'), list = JSON.parse(localStorage.getItem('db') || '[]');
-    let n = { '高风险':0, '中风险':0, '低风险':0 }; list.forEach(r => n[r.lv]++);
+    const box = document.getElementById('content');
+    const list = JSON.parse(localStorage.getItem('db') || '[]');
+    let n = { '高风险': 0, '中风险': 0, '低风险': 0 };
+    list.forEach(r => n[r.lv]++);
+    
+    // 确保 html 字符串包含了 id="chart" 的容器
     const html = list.slice(-5).reverse().map(r => `<div class="card ${r.lv==='高风险'?'high':(r.lv==='中风险'?'mid':'low')}">⏰ ${r.time}<br>内容：${r.t || '心情投递'}</div>`).join('');
-    box.innerHTML = `<h2>教师端</h2><div id="chart" style="height:200px;"></div>${html}`;
+    
+    box.innerHTML = `
+        <h2>教师端看板</h2>
+        <div class="card">
+            <h3>趋势统计</h3>
+            <div id="chart" style="width:100%; height:300px;"></div>
+        </div>
+        ${html}`;
+
+    // 必须在 innerHTML 赋值后，DOM 渲染完成才能初始化图表
     setTimeout(() => {
-        const c = echarts.init(document.getElementById('chart'));
-        c.setOption({ xAxis: {type:'category', data:['高','中','低']}, yAxis: {type:'value'}, series: [{data:[n['高风险'],n['中风险'],n['低风险']], type:'bar'}] });
-    }, 100);
+        const el = document.getElementById('chart');
+        if (el) {
+            const c = echarts.init(el);
+            c.setOption({
+                xAxis: { type: 'category', data: ['高风险', '中风险', '低风险'] },
+                yAxis: { type: 'value' },
+                series: [{
+                    data: [
+                        { value: n['高风险'], itemStyle: {color: '#e74c3c'} },
+                        { value: n['中风险'], itemStyle: {color: '#f39c12'} },
+                        { value: n['低风险'], itemStyle: {color: '#2ecc71'} }
+                    ],
+                    type: 'bar'
+                }]
+            });
+        }
+    }, 200);
 }
+
 page('student');
