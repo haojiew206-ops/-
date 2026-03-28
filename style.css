@@ -14,6 +14,7 @@ body {
   background: linear-gradient(180deg, #2f3b52, #1f2a40);
   color: white;
   padding: 20px;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
 }
 
 .sidebar h2 {
@@ -29,6 +30,7 @@ body {
 
 .sidebar p:hover {
   background: rgba(255,255,255,0.1);
+  transform: translateX(5px);
 }
 
 .main {
@@ -54,11 +56,12 @@ body {
   border-radius: 14px;
   margin-bottom: 15px;
   box-shadow: 0 6px 15px rgba(0,0,0,0.05);
-  transition: 0.2s;
+  transition: 0.3s;
+  animation: fadeInUp 0.4s ease;
 }
 
 .card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
 }
 
 textarea {
@@ -67,10 +70,12 @@ textarea {
   padding: 10px;
   font-size: 14px;
   outline: none;
+  transition: 0.2s;
 }
 
 textarea:focus {
   border-color: #2f80ed;
+  box-shadow: 0 0 6px rgba(47,128,237,0.3);
 }
 
 button {
@@ -86,6 +91,10 @@ button {
 
 button:hover {
   background: #1c6cd5;
+}
+
+button:active {
+  transform: scale(0.95);
 }
 
 .mood-btn {
@@ -113,4 +122,15 @@ button:hover {
   border-left: 6px solid #2ecc71;
   color: #2ecc71;
   font-weight: bold;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
