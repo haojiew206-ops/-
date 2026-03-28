@@ -1,28 +1,28 @@
 let selectedMood = '';
-const themes = {
-    '难受': { bg: '#ebf3ff', color: '#2f80ed' },
-    '一般': { bg: '#f5f7fa', color: '#607d8b' },
-    '压力': { bg: '#fff5f5', color: '#e74c3c' },
-    '不错': { bg: '#f0fff4', color: '#2ecc71' }
+const moodThemeMap = {
+    '难受': { bg: '#eef2f7', theme: '#2f80ed', note: '沉稳蓝，平复思绪' },
+    '一般': { bg: '#f8f9fa', theme: '#6c757d', note: '中性灰，保持客观' },
+    '压力': { bg: '#fff4f2', theme: '#eb5757', note: '警示红，提醒减压' },
+    '不错': { bg: '#f2faf5', theme: '#27ae60', note: '希望绿，积极共鸣' }
 };
 
 function showPage(type) {
     const contentBox = document.getElementById('content');
     if (type === 'student') {
         contentBox.innerHTML = `
-            <h2>心事投递箱</h2>
-            <div class="card"><strong>今天想说点什么？</strong><br><br>
-                <textarea id="userInput" placeholder="写下一句话，或者只选择心情..."></textarea>
-            </div>
-            <div class="card"><strong>目前状态：</strong><br><br>
-                <button class="mood-btn" onclick="selectMood(event,'难受')">😔 有点难受</button>
-                <button class="mood-btn" onclick="selectMood(event,'一般')">😐 情绪平稳</button>
-                <button class="mood-btn" onclick="selectMood(event,'压力')">😫 压力较大</button>
-                <button class="mood-btn" onclick="selectMood(event,'不错')">🙂 状态不错</button>
+            <div class="card">
+                <h3>📮 心灵邮筒</h3>
+                <textarea id="userInput" placeholder="写下你此时此刻真实的感受..."></textarea>
             </div>
             <div class="card">
-                <button onclick="submitEmotion()">📮 投进邮筒</button>
-                <button onclick="clearChat()" style="background:#aaa">🧹 清空聊天</button>
+                <h3>🌈 情绪状态</h3>
+                <div id="moodGroup">
+                    ${Object.keys(moodThemeMap).map(m => `<button class="mood-btn" onclick="selectMood(event,'${m}')">${m}</button>`).join('')}
+                </div>
+            </div>
+            <div style="margin-bottom:30px;">
+                <button onclick="submitEmotion()" style="width:180px; font-size:1.1rem;">发送心事</button>
+                <button onclick="clearChat()" style="background:#dee2e6; color:#495057; margin-left:10px;">清空记录</button>
             </div>
             <div id="resultBox"></div>
         `;
@@ -32,84 +32,88 @@ function showPage(type) {
 
 function selectMood(e, mood) {
     selectedMood = mood;
-    const cfg = themes[mood] || themes['一般'];
-    document.body.style.background = cfg.bg;
+    const config = moodThemeMap[mood] || moodThemeMap['一般'];
+    document.body.style.background = config.bg;
     document.querySelectorAll('.mood-btn').forEach(btn => {
-        btn.style.background = '#f0f3f8'; btn.style.color = '#333';
+        btn.style.background = '#f1f3f5'; btn.style.color = '#495057';
     });
-    e.target.style.background = cfg.color; e.target.style.color = 'white';
+    e.target.style.background = config.theme; e.target.style.color = 'white';
 }
 
 function submitEmotion() {
     const input = document.getElementById('userInput');
     const text = input.value;
     const chatBox = document.getElementById('resultBox');
-    if (!text && !selectedMood) return alert("写点什么或选个心情吧~");
+    if (!text && !selectedMood) return alert("请先投递你的心情片段...");
 
-    const userMsg = text || `我现在心情${selectedMood}`;
-    appendMsg(chatBox, "chat-user", "👤 " + userMsg);
+    const userText = text || `我现在感觉${selectedMood}`;
+    appendMsg(chatBox, "chat-user", "👤 " + userText);
     
-    const risk = generateRisk(text, selectedMood);
-    const response = generateResponse(text, selectedMood);
+    const risk = analyzeRisk(text, selectedMood);
+    const response = getResponse(risk);
+    
     saveRecord(text, risk);
     input.value = '';
 
-    const loading = appendMsg(chatBox, "chat-ai", "🤖 正在回信...");
+    const loading = appendMsg(chatBox, "chat-ai", "🤖 正在感应你的情绪...");
     setTimeout(() => {
         loading.remove();
         const aiMsg = appendMsg(chatBox, "chat-ai", "");
         typeWriter(aiMsg, "🤖 " + response);
-        
-        // 触发呼吸练习
+
         if (risk !== '低风险' || selectedMood === '压力') {
-            setTimeout(() => triggerBreath(chatBox), 1500);
+            setTimeout(() => addBreathExercise(chatBox), 1500);
         } else {
             setTimeout(() => {
-                const tip = appendMsg(chatBox, "chat-tip", "💡 " + getSuggestion(risk));
+                appendMsg(chatBox, "chat-tip", "💡 建议：" + getSuggestion(risk));
                 saveChat();
             }, 1000);
         }
     }, 800);
 }
 
-function triggerBreath(box) {
-    const div = document.createElement('div');
-    div.className = 'breath-wrap';
-    div.innerHTML = `<div class="breath-circle"></div><div id="bTxt">跟随圆圈，深吸气...</div>`;
-    box.appendChild(div);
-    let inBreath = true;
-    const t = setInterval(() => {
-        if(!document.contains(div)) return clearInterval(t);
-        inBreath = !inBreath;
-        document.getElementById('bTxt').innerText = inBreath ? "跟随圆圈，深吸气..." : "呼气，吐出压力...";
+function addBreathExercise(box) {
+    const wrap = document.createElement('div');
+    wrap.className = 'breath-box card';
+    wrap.innerHTML = `
+        <div class="breath-circle"></div>
+        <h4 id="breathTxt" style="color:#2f80ed">跟随圆圈，缓慢深呼吸...</h4>
+        <p style="font-size:0.9rem; color:#888;">专注这一刻的呼吸，能有效缓解焦虑</p>
+        <button onclick="this.parentElement.remove()" style="background:#eee; color:#666; margin-top:10px;">我感觉好些了</button>
+    `;
+    box.appendChild(wrap);
+    let isIn = true;
+    const interval = setInterval(() => {
+        if(!document.contains(wrap)) return clearInterval(interval);
+        isIn = !isIn;
+        document.getElementById('breathTxt').innerText = isIn ? "吸气... 感受能量" : "呼气... 释放压力";
     }, 4000);
-    setTimeout(saveChat, 1000);
-    box.parentElement.scrollTo(0, box.parentElement.scrollHeight);
+    scrollToBottom();
 }
 
-function generateRisk(text, mood) {
-    const weights = {'死':10, '崩溃':5, '压力':3, '累':2, '难过':3, '哭':3};
-    let s = 0;
-    Object.keys(weights).forEach(w => { if(text.includes(w)) s += weights[w]; });
-    if(mood==='压力' || mood==='难受') s += 3;
-    return s > 6 ? '高风险' : (s > 2 ? '中风险' : '低风险');
+function analyzeRisk(text, mood) {
+    const highWeight = ['死', '绝望', '离开世界', '自残', '撑不下'];
+    const midWeight = ['累', '焦虑', '失眠', '烦躁', '压力', '难过', '哭'];
+    if (highWeight.some(w => text.includes(w))) return '高风险';
+    let score = midWeight.filter(w => text.includes(w)).length;
+    if (mood === '压力' || mood === '难受') score += 2;
+    return score >= 3 ? '高风险' : (score >= 1 ? '中风险' : '低风险');
 }
 
-function generateResponse(text, mood) {
-    const r = generateRisk(text, mood);
-    const replies = {
-        '高风险': ["我很担心你，请一定要对自己温柔一点。", "听起来你正在经历一段艰难的时间，我一直在这里。"],
-        '中风险': ["压力像乌云，总会散去的。试着给自己放个小假？", "你已经很努力了，偶尔停下来没关系的。"],
-        '低风险': ["保持现在的节奏就很好，你是个懂得照顾情绪的人。", "生活虽然忙碌，但你处理得很棒。"]
+function getResponse(risk) {
+    const data = {
+        '高风险': ["听到你这么说，我很心疼。请一定要抱抱自己，你的存在本身就很有意义。", "这一刻确实很艰难，但请相信，我一直在这里听你说。"],
+        '中风险': ["感觉你最近背负了很多，偶尔给自己按个暂停键吧。", "生活不需要一直保持100分，现在的你已经很棒了。"],
+        '低风险': ["能觉察并表达自己的情绪，是心灵健康的开始。", "很高兴看到你状态不错，继续保持这份觉察吧。"]
     };
-    const list = replies[r];
-    return list[Math.floor(Math.random()*list.length)];
+    const list = data[risk];
+    return list[Math.floor(Math.random() * list.length)];
 }
 
-function getSuggestion(level) {
-    if (level === '高风险') return "现在的状态建议找专业老师聊聊，或者拨打校内心理热线。";
-    if (level === '中风险') return "可以听听轻音乐，或者去操场散散步放松一下。";
-    return "状态不错，继续保持这份好心情。";
+function getSuggestion(risk) {
+    if (risk === '高风险') return "你需要更专业的支持，建议拨打校内心理中心电话或寻找信任的老师。";
+    if (risk === '中风险') return "可以试着听听白噪音，或者去户外走走，给心灵充个电。";
+    return "保持良好的作息，你现在的节奏非常棒！";
 }
 
 function appendMsg(box, cls, text) {
@@ -117,7 +121,7 @@ function appendMsg(box, cls, text) {
     div.className = "chat-item " + cls;
     div.innerText = text;
     box.appendChild(div);
-    box.parentElement.scrollTo(0, box.parentElement.scrollHeight);
+    scrollToBottom();
     return div;
 }
 
@@ -126,15 +130,17 @@ function typeWriter(el, text) {
     (function run() { if (i < text.length) { el.innerHTML += text[i++]; setTimeout(run, 40); } })();
 }
 
-function saveChat() { 
-    const box = document.getElementById('resultBox');
-    if(box) localStorage.setItem('chatHistory', box.innerHTML); 
+function scrollToBottom() {
+    const area = document.querySelector('.content-area');
+    area.scrollTo({ top: area.scrollHeight, behavior: 'smooth' });
 }
+
+function saveChat() { localStorage.setItem('v2_history', document.getElementById('resultBox').innerHTML); }
 function loadChat() { 
-    const data = localStorage.getItem('chatHistory');
+    const data = localStorage.getItem('v2_history');
     if (data) document.getElementById('resultBox').innerHTML = data; 
 }
-function clearChat() { localStorage.removeItem('chatHistory'); document.getElementById('resultBox').innerHTML = ''; }
+function clearChat() { localStorage.removeItem('v2_history'); document.getElementById('resultBox').innerHTML = ''; }
 function saveRecord(text, risk) {
     let records = JSON.parse(localStorage.getItem('records') || '[]');
     records.push({ text, risk, time: new Date().toLocaleString() });
@@ -144,30 +150,48 @@ function saveRecord(text, risk) {
 function renderTeacher() {
     const contentBox = document.getElementById('content');
     const records = JSON.parse(localStorage.getItem('records') || '[]');
-    let high = 0, mid = 0, low = 0;
-    records.forEach(r => { if(r.risk==='高风险') high++; else if(r.risk==='中风险') mid++; else low++; });
+    let stats = { '高风险':0, '中风险':0, '低风险':0 };
+    records.forEach(r => stats[r.risk]++);
 
-    const list = records.slice(-5).reverse().map(r => `
-        <div class="card ${r.risk==='高风险'?'high alert':'mid'}">
-            ⏰ ${r.time} | 风险：${r.risk}<br>内容：${r.text || '（无文字）'}
-        </div>`).join('');
+    const listHtml = records.slice(-6).reverse().map(r => `
+        <div class="card ${r.risk === '高风险' ? 'high alert' : (r.risk === '中风险' ? 'mid' : 'low')}">
+            <div style="display:flex; justify:space-between;">
+                <strong>状态：${r.risk}</strong>
+                <small>${r.time}</small>
+            </div>
+            <p style="margin-top:10px; color:#666;">内容：${r.text || '未填写文字'}</p>
+        </div>
+    `).join('');
 
     contentBox.innerHTML = `
-        <h2>教师端 · 风险监测</h2>
-        <div style="display:flex; gap:10px; margin-bottom:20px;">
-            <div class="card high" style="flex:1">高风险：${high}</div>
-            <div class="card mid" style="flex:1">中风险：${mid}</div>
-            <div class="card low" style="flex:1">低风险：${low}</div>
+        <h2>📊 教师端 · 危机预警看板</h2>
+        <div style="display:flex; gap:15px; margin-bottom:25px;">
+            <div class="card high" style="flex:1; text-align:center;"><h3>${stats['高风险']}</h3>高风险</div>
+            <div class="card mid" style="flex:1; text-align:center;"><h3>${stats['中风险']}</h3>中风险</div>
+            <div class="card low" style="flex:1; text-align:center;"><h3>${stats['低风险']}</h3>低风险</div>
         </div>
-        <div class="card"><h3>风险分布统计</h3><div id="riskChart" style="height:300px;"></div></div>
-        <h3>最近记录</h3>${list || '<p>暂无数据</p>'}
+        <div class="card">
+            <h3>趋势统计</h3>
+            <div id="mainChart" style="height:350px;"></div>
+        </div>
+        <h3>最近预警动态</h3>
+        ${listHtml || '<p>暂无异常记录</p>'}
     `;
+
     setTimeout(() => {
-        const chart = echarts.init(document.getElementById('riskChart'));
+        const chart = echarts.init(document.getElementById('mainChart'));
         chart.setOption({
+            tooltip: {},
             xAxis: { type: 'category', data: ['高风险', '中风险', '低风险'] },
             yAxis: { type: 'value' },
-            series: [{ type: 'bar', data: [high, mid, low], itemStyle: { color: (params) => ['#e74c3c','#f39c12','#2ecc71'][params.dataIndex] } }]
+            series: [{
+                data: [
+                    { value: stats['高风险'], itemStyle: {color: '#eb5757'} },
+                    { value: stats['中风险'], itemStyle: {color: '#f2994a'} },
+                    { value: stats['低风险'], itemStyle: {color: '#27ae60'} }
+                ],
+                type: 'bar', barWidth: '40%'
+            }]
         });
     }, 100);
 }
