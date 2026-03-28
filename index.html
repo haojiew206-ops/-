@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>心晴守望 · 智能监测系统</title>
+  <title>心晴守望 · 监测系统</title>
   <link rel="stylesheet" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -11,21 +11,24 @@
     <aside class="sidebar">
       <h2>🌿 心晴守望</h2>
       <nav>
-        <p onclick="showPage('student')">🏠 学生端入口</p>
-        <p onclick="showPage('teacher')">📊 教师预警看板</p>
+        <p onclick="showpage('student')">🏠 学生端</p>
+        <p onclick="showpage('teacher')">📊 教师端</p>
       </nav>
-      <div style="position:absolute; bottom:20px; font-size:12px; opacity:0.3; width:180px; text-align:center;">© 2024 系统作品</div>
+      <div style="position:absolute; bottom:20px; font-size:12px; opacity:0.3; width:180px; text-align:center;">© 2024 系统</div>
     </aside>
     <main class="main">
-      <header class="header"><h1>大学生心理健康智能监测与预警平台</h1><div id="currentTime" style="margin-left:auto; color:#888; font-size:14px;"></div></header>
+      <header class="header"><h1>心理健康监测平台</h1><div id="time" style="margin-left:auto; color:#888; font-size:14px;"></div></header>
       <section id="content" class="content-area"></section>
     </main>
   </div>
   <script src="https://jsdelivr.net"></script>
   <script src="app.js"></script>
   <script>
-    function updateTime() { document.getElementById('currentTime').innerText = new Date().toLocaleString(); }
-    setInterval(updateTime, 1000); updateTime();
+    function clock() { 
+        const el = document.getElementById('time');
+        if(el) el.innerText = new Date().toLocaleString(); 
+    }
+    setInterval(clock, 1000); clock();
   </script>
 </body>
 </html>
