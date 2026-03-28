@@ -20,10 +20,13 @@ function showPage(type) {
 
       <div class="card">
         <button onclick="submitEmotion()">📮 投进邮筒</button>
+        <button onclick="clearChat()">🧹 清空聊天</button>
       </div>
 
       <div id="resultBox"></div>
     `
+
+    setTimeout(loadChat, 100)
   }
 
   if (type === 'teacher') {
@@ -62,36 +65,60 @@ function selectMood(e, mood) {
 
 function submitEmotion() {
   const text = document.getElementById('userInput').value
+  const chatBox = document.getElementById('resultBox')
 
-  // 防空提交（产品级细节）
   if (!text && !selectedMood) {
     alert("可以写一句话或者选一个状态哦～")
     return
   }
 
+  const userMsg = document.createElement("div")
+  userMsg.className = "chat-item chat-user"
+  userMsg.innerText = "👤 " + (text || selectedMood)
+  chatBox.appendChild(userMsg)
+
+  scrollToBottom()
+  saveChat()
+
   const response = generateResponse(text, selectedMood)
   const risk = generateRisk(text, selectedMood)
 
-  document.getElementById('resultBox').innerHTML = `
-    <div class="card ${getRiskClass(risk)}">
-      风险判断：${risk}
-    </div>
+  document.getElementById('userInput').value = ''
 
-    <div class="card">
-      <strong>💬 给你的回应：</strong><br><br>
-      ${response}
-    </div>
+  const loadingMsg = document.createElement("div")
+  loadingMsg.className = "chat-item chat-ai typing"
+  loadingMsg.innerText = "🤖 正在思考..."
+  chatBox.appendChild(loadingMsg)
 
-    <div class="card">
-      <strong>💡 小建议：</strong><br><br>
-      ${getSuggestion(risk)}
-    </div>
-  `
+  scrollToBottom()
+
+  setTimeout(() => {
+    loadingMsg.remove()
+
+    const aiMsg = document.createElement("div")
+    aiMsg.className = "chat-item chat-ai"
+    chatBox.appendChild(aiMsg)
+
+    typeWriter(aiMsg, "🤖 " + response)
+    scrollToBottom()
+
+    setTimeout(saveChat, 1000)
+  }, 600)
+
+  setTimeout(() => {
+    const tipMsg = document.createElement("div")
+    tipMsg.className = "chat-item chat-tip"
+    chatBox.appendChild(tipMsg)
+
+    typeWriter(tipMsg, "💡 " + getSuggestion(risk), 20)
+    scrollToBottom()
+
+    setTimeout(saveChat, 1500)
+  }, 1600)
 }
 
 
 function generateRisk(text, mood) {
-
   if (text.includes('累') || text.includes('压力') || mood === '压力') {
     return '中风险'
   }
@@ -105,7 +132,6 @@ function generateRisk(text, mood) {
 
 
 function generateResponse(text, mood) {
-
   if (text.includes('累') || text.includes('作业') || mood === '压力') {
     return "你最近可能有点压力大，长时间紧绷真的很辛苦。可以试着给自己一点喘息的空间，不用一直逼自己。"
   }
@@ -115,6 +141,49 @@ function generateResponse(text, mood) {
   }
 
   return "生活本来就有起伏，你现在的状态其实很正常。可以试着放松一下，让自己轻松一点。"
+}
+
+
+function typeWriter(element, text, speed = 30) {
+  let i = 0
+  element.innerHTML = ""
+
+  function typing() {
+    if (i < text.length) {
+      element.innerHTML += text.charAt(i)
+      i++
+      setTimeout(typing, speed)
+    }
+  }
+
+  typing()
+}
+
+
+function scrollToBottom() {
+  const box = document.getElementById('resultBox')
+  box.scrollTop = box.scrollHeight
+}
+
+
+function saveChat() {
+  const chatBox = document.getElementById('resultBox')
+  localStorage.setItem('chatHistory', chatBox.innerHTML)
+}
+
+function loadChat() {
+  const chatBox = document.getElementById('resultBox')
+  const history = localStorage.getItem('chatHistory')
+
+  if (history) {
+    chatBox.innerHTML = history
+    scrollToBottom()
+  }
+}
+
+function clearChat() {
+  localStorage.removeItem('chatHistory')
+  document.getElementById('resultBox').innerHTML = ''
 }
 
 
